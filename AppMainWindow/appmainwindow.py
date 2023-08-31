@@ -31,6 +31,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
         self.cam = cv.VideoCapture(0)
         self.timer = QTimer(self)
+        self.known_face_encodings = []
+        self.known_face_names = []
 
         self.setupUi(self)
         self._init()
@@ -41,6 +43,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
     def _init(self) -> None:
         self.videoLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.timer.timeout.connect(self.readCamera)
+        self.loadData("data")
         self.timer.start(2)
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
@@ -57,11 +60,56 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         else:
             return cv.resize(img, (wn, hn), interpolation=cv.INTER_LINEAR)
 
+    def loadData(self, dataDir: str) -> None:
+        for name in os.listdir(dataDir):
+            imgDir = path.join(dataDir, name)
+            for file in os.listdir(imgDir):
+                image = fr.load_image_file(path.join(imgDir, file))
+                faceEncs = fr.face_encodings(image)
+                if faceEncs:
+                    self.known_face_encodings.append(faceEncs[0])
+                    self.known_face_names.append(name)
+
     def readCamera(self) -> None:
         ret, frame = self.cam.read()
         if not ret:
             return
         frame = self._resize(frame, (self.videoLabel.width(), self.videoLabel.height()))
+
+        small_frame = cv.resize(
+            frame, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA
+        )
+        rgb_small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
+
+        face_locations = fr.face_locations(rgb_small_frame)
+        face_encodings = fr.face_encodings(rgb_small_frame, face_locations)
+        face_names = []
+
+        for face_encoding in face_encodings:
+            name = "Unknown"
+
+            face_distances = fr.face_distance(self.known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances)
+
+            if face_distances[best_match_index] < 0.4:
+                name = self.known_face_names[best_match_index]
+
+            face_names.append(name)
+
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
+            top, right = top * 2, right * 2
+            bottom, left = bottom * 2, left * 2
+
+            cv.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+            cv.rectangle(
+                frame, (left, bottom - 20), (right, bottom), (0, 0, 255), cv.FILLED
+            )
+
+            font = cv.FONT_HERSHEY_COMPLEX_SMALL
+            cv.putText(
+                frame, name, (left + 3, bottom - 3), font, 1.0, (255, 255, 255), 1
+            )
+
         self.videoLabel.setPixmap(cvMatToQPixmap(frame))
 
 
@@ -72,78 +120,3 @@ db = connect(
     user="root",
     password="abcd1234",
 )"""
-
-"""import face_recognition as fr
-import cv2 as cv
-import numpy as np
-import os.path as path
-import os
-
-DATA_DIR = "data"
-
-known_face_encodings = []
-known_face_names = []
-
-for name in os.listdir(DATA_DIR):
-    imgDir = path.join(DATA_DIR, name)
-    for file in os.listdir(imgDir):
-        image = fr.load_image_file(path.join(imgDir, file))
-        faceEncs = fr.face_encodings(image)
-        if faceEncs:
-            known_face_encodings.append(faceEncs[0])
-            known_face_names.append(name)
-
-face_locations = []
-face_encodings = []
-face_names = []
-process_this_frame = True
-
-video_capture = cv.VideoCapture(0)
-
-while True:
-    ret, frame = video_capture.read()
-    frame = cv.resize(frame, (0, 0), fx=0.7, fy=0.7, interpolation=cv.INTER_AREA)
-
-    if process_this_frame:
-        small_frame = cv.resize(
-            frame, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA
-        )
-
-        rgb_small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
-
-        face_locations = fr.face_locations(rgb_small_frame)
-        face_encodings = fr.face_encodings(rgb_small_frame, face_locations)
-
-        face_names = []
-        for face_encoding in face_encodings:
-            name = "Unknown"
-
-            face_distances = fr.face_distance(known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
-
-            if face_distances[best_match_index] < 0.4:
-                name = known_face_names[best_match_index]
-
-            face_names.append(name)
-
-    process_this_frame = not process_this_frame
-
-    for (top, right, bottom, left), name in zip(face_locations, face_names):
-        top, right = top * 2, right * 2
-        bottom, left = bottom * 2, left * 2
-
-        cv.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-
-        cv.rectangle(
-            frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv.FILLED
-        )
-        font = cv.FONT_HERSHEY_DUPLEX
-        cv.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
-
-    cv.imshow("Face Recognition", frame)
-
-    if cv.waitKey(2) == 27:  # esc
-        break
-
-video_capture.release()
-cv.destroyAllWindows()"""

@@ -16,9 +16,7 @@ class Ui_MainWindow(object):
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.videoLabel = QtWidgets.QLabel(parent=self.centralwidget)
-        self.videoLabel.setGeometry(QtCore.QRect(130, 30, 541, 331))
-        self.videoLabel.setStyleSheet("background: rgb(150, 150, 150);")
-        self.videoLabel.setText("")
+        self.videoLabel.setGeometry(QtCore.QRect(10, 10, 781, 461))
         self.videoLabel.setObjectName("videoLabel")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
@@ -34,4 +32,4 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Face Recognition"))
