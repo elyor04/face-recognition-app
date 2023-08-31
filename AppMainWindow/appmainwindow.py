@@ -88,10 +88,10 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             name = "Unknown"
 
             face_distances = fr.face_distance(self.known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
+            best_index = np.argmin(face_distances)
 
-            if face_distances[best_match_index] < 0.4:
-                name = self.known_face_names[best_match_index]
+            if face_distances[best_index] < 0.4:
+                name = self.known_face_names[best_index]
 
             face_names.append(name)
 
