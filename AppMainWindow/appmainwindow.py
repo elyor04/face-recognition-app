@@ -2,17 +2,14 @@
 pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 """
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel
-from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent
+from PyQt6.QtCore import QTimer, Qt
 from .ui_mainwindow import Ui_MainWindow
 
-import face_recognition as fr
-import cv2 as cv
-import numpy as np
-
 from mysql.connector import connect
-import os.path as path
-import os
+import face_recognition as fr
+import numpy as np
+import cv2 as cv
 
 
 def cvMatToQImage(inMat: cv.Mat) -> QImage:
@@ -56,7 +53,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
         self.createConnection()
-        self.loadData("data")
+        self.loadData()
         self.timer.start(2)
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
@@ -81,22 +78,25 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         )
         self.cr = self.db.cursor()
 
-        self.cr.execute("SHOW DATABASES")
-        dbs = [db[0] for db in self.cr]
-
-        if "face_recognition_app" not in dbs:
-            self.cr.execute("CREATE DATABASE face_recognition_app")
+        self.cr.execute("CREATE DATABASE IF NOT EXISTS face_recognition_app")
         self.db.connect(database="face_recognition_app")
 
-    def loadData(self, dataDir: str) -> None:
-        for name in os.listdir(dataDir):
-            imgDir = path.join(dataDir, name)
-            for file in os.listdir(imgDir):
-                image = fr.load_image_file(path.join(imgDir, file))
-                faceEncs = fr.face_encodings(image)
-                if faceEncs:
-                    self.known_face_encodings.append(faceEncs[0])
-                    self.known_face_names.append(name)
+        self.cr.execute(
+            "CREATE TABLE IF NOT EXISTS known_faces (id INT AUTO_INCREMENT PRIMARY KEY, name TEXT, encoding BLOB)"
+        )
+
+    def loadData(self) -> None:
+        """img = fr.load_image_file("data/Elyor/elyor.jpg")
+        encoding = fr.face_encodings(img)[0].tobytes()
+        name = "Elyor"
+        sql = "INSERT INTO known_faces (name, encoding) VALUES (%s, %s)"
+        self.cr.execute(sql, (name, encoding))
+        self.db.commit()"""
+
+        self.cr.execute("SELECT name, encoding FROM known_faces")
+        for name, encoding in self.cr.fetchall():
+            self.known_face_encodings.append(np.frombuffer(encoding))
+            self.known_face_names.append(name)
 
     def readCamera(self) -> None:
         ret, frame = self.cam.read()
@@ -108,21 +108,25 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             frame, (0, 0), fx=0.3, fy=0.3, interpolation=cv.INTER_AREA
         )
         rgb_small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
-
         face_locations = fr.face_locations(rgb_small_frame)
-        face_encodings = fr.face_encodings(rgb_small_frame, face_locations)
-        face_names = []
 
-        for face_encoding in face_encodings:
-            name = "Unknown"
+        if self.known_face_names:
+            face_encodings = fr.face_encodings(rgb_small_frame, face_locations)
+            face_names = []
 
-            face_distances = fr.face_distance(self.known_face_encodings, face_encoding)
-            best_index = np.argmin(face_distances)
+            for face_encoding in face_encodings:
+                name = "Unknown"
 
-            if face_distances[best_index] < 0.4:
-                name = self.known_face_names[best_index]
+                face_distances = fr.face_distance(
+                    self.known_face_encodings, face_encoding
+                )
+                best_index = np.argmin(face_distances)
 
-            face_names.append(name)
+                if face_distances[best_index] < 0.4:
+                    name = self.known_face_names[best_index]
+                face_names.append(name)
+        else:
+            face_names = ["Unknown" for _ in range(len(face_locations))]
 
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             top, right = int(top * 3.3), int(right * 3.3)
