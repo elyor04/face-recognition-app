@@ -76,7 +76,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
                 if faceEncs:
                     self.known_face_encodings.append(faceEncs[0])
                     self.known_face_names.append(name)
-        print(str(self.known_face_encodings[0]))
 
     def readCamera(self) -> None:
         ret, frame = self.cam.read()
