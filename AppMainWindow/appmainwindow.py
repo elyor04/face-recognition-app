@@ -1,10 +1,10 @@
 """
-pyuic6 -o AppMainWindow/ui_form.py "path/to/file.ui"
+pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 """
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent
-from .ui_form import Ui_MainWindow
+from .ui_mainwindow import Ui_MainWindow
 
 import face_recognition as fr
 import cv2 as cv
