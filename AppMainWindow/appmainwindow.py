@@ -71,6 +71,9 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
                     self.known_face_names.append(name)
 
     def readCamera(self) -> None:
+        if self.tabWidget.currentIndex() != 0:
+            return
+
         ret, frame = self.cam.read()
         if not ret:
             return
