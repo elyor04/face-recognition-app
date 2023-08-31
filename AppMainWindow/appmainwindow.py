@@ -74,10 +74,9 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         ret, frame = self.cam.read()
         if not ret:
             return
-        frame = self._resize(frame, (self.videoLabel.width(), self.videoLabel.height()))
 
         small_frame = cv.resize(
-            frame, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA
+            frame, (0, 0), fx=0.4, fy=0.4, interpolation=cv.INTER_AREA
         )
         rgb_small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
 
@@ -97,19 +96,20 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             face_names.append(name)
 
         for (top, right, bottom, left), name in zip(face_locations, face_names):
-            top, right = top * 2, right * 2
-            bottom, left = bottom * 2, left * 2
+            top, right = int(top * 2.5), int(right * 2.5)
+            bottom, left = int(bottom * 2.5), int(left * 2.5)
 
             cv.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
             cv.rectangle(
-                frame, (left, bottom - 20), (right, bottom), (0, 0, 255), cv.FILLED
+                frame, (left, bottom - 40), (right, bottom), (0, 0, 255), cv.FILLED
             )
 
-            font = cv.FONT_HERSHEY_COMPLEX_SMALL
+            font = cv.FONT_HERSHEY_COMPLEX
             cv.putText(
-                frame, name, (left + 3, bottom - 3), font, 1.0, (255, 255, 255), 1
+                frame, name, (left + 8, bottom - 8), font, 1.5, (255, 255, 255), 2
             )
 
+        frame = self._resize(frame, (self.videoLabel.width(), self.videoLabel.height()))
         self.videoLabel.setPixmap(cvMatToQPixmap(frame))
 
 
