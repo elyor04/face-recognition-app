@@ -10,6 +10,7 @@ import face_recognition as fr
 import cv2 as cv
 import numpy as np
 
+from mysql.connector import connect
 import os.path as path
 import os
 
@@ -37,11 +38,15 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.known_face_names = []
         self.lastFrame = None
 
+        self.db = None
+        self.cr = None
+
         self.setupUi(self)
         self._init()
 
     def __del__(self) -> None:
         self.cam.release()
+        self.db.close()
 
     def _init(self) -> None:
         self.videoLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -50,6 +55,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.timer.timeout.connect(self.readCamera)
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
+        self.createConnection()
         self.loadData("data")
         self.timer.start(2)
 
@@ -66,6 +72,21 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             return cv.resize(img, (wn, hn), interpolation=cv.INTER_AREA)
         else:
             return cv.resize(img, (wn, hn), interpolation=cv.INTER_LINEAR)
+
+    def createConnection(self) -> None:
+        self.db = connect(
+            host="localhost",
+            user="root",
+            password="abcd1234",
+        )
+        self.cr = self.db.cursor()
+
+        self.cr.execute("SHOW DATABASES")
+        dbs = [db[0] for db in self.cr]
+
+        if "face_recognition_app" not in dbs:
+            self.cr.execute("CREATE DATABASE face_recognition_app")
+        self.db.connect(database="face_recognition_app")
 
     def loadData(self, dataDir: str) -> None:
         for name in os.listdir(dataDir):
@@ -131,12 +152,3 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.maxVideo.showMaximized()
         else:
             self.maxVideo.hide()
-
-
-"""from mysql.connector import connect
-
-db = connect(
-    host="localhost",
-    user="root",
-    password="abcd1234",
-)"""
