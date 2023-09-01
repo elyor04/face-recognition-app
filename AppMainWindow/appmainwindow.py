@@ -284,9 +284,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             "*.dib",
             "*.webp",
         ]
-        formats = f"Image Files ({' '.join(formats)})"
         fileName, _ = QFileDialog.getOpenFileName(
-            self, "Open Image File", filter=formats
+            self, "Open Image File", filter=f"Image Files ({' '.join(formats)})"
         )
 
         for face in self.uknown_faces:
