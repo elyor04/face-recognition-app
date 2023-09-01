@@ -135,7 +135,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.known_face_names.append(name)
             self.known_face_encodings.append(np.frombuffer(encoding))
 
-    def _detectFaces(self, img: cv.Mat, scale: float = 0.5) -> tuple[list, list, list]:
+    def _detectFaces(self, img: cv.Mat, scale: float = 0.8) -> tuple[list, list, list]:
         small_frame = cv.resize(
             img, (0, 0), fx=scale, fy=scale, interpolation=cv.INTER_AREA
         )
@@ -163,8 +163,9 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         return (face_locations, face_encodings, face_names)
 
     def _visualize(
-        self, img: cv.Mat, face_locations: list, face_names: list, scale: float = 2.0
+        self, img: cv.Mat, face_locations: list, face_names: list, scale: float = 0.8
     ) -> cv.Mat:
+        scale = 1 / scale
         for (top, right, bottom, left), name in zip(face_locations, face_names):
             top, right = int(top * scale), int(right * scale)
             bottom, left = int(bottom * scale), int(left * scale)
@@ -247,7 +248,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             face.close()
         self.addWindow.imageLabel.clear()
 
-    def _proceed(self, scale: float = 2.0) -> None:
+    def _proceed(self, scale: float = 0.8) -> None:
+        scale = 1 / scale
         self.uknown_faces.clear()
         deltaX = self.addWindow.imageLabel.width() - self.frame.shape[1]
         deltaY = self.addWindow.imageLabel.height() - self.frame.shape[0]
