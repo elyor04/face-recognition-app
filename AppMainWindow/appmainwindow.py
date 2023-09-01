@@ -34,21 +34,11 @@ class AddWindow(QWidget, Ui_Widget):
 
     def _init(self) -> None:
         self.browse.setChecked(True)
-        self.screenshotGroup.setEnabled(False)
-        self.cancelBtn.clicked.connect(self.hide)
-        self.browse.clicked.connect(self.browse_clicked)
-        self.screenshot.clicked.connect(self.screenshot_clicked)
-        self.imageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.okBtn.setEnabled(False)
         self.proceedBtn.setEnabled(False)
-
-    def browse_clicked(self) -> None:
-        self.browseGroup.setEnabled(True)
         self.screenshotGroup.setEnabled(False)
-
-    def screenshot_clicked(self) -> None:
-        self.screenshotGroup.setEnabled(True)
-        self.browseGroup.setEnabled(False)
+        self.cancelBtn.clicked.connect(self.hide)
+        self.imageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
 class AppMainWindow(QMainWindow, Ui_MainWindow):
@@ -84,6 +74,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.maxVideo.resize(600, 500)
         self.timer.timeout.connect(self.readCamera)
         self.addBtn.clicked.connect(self.addBtn_clicked)
+        self.addWindow.browse.clicked.connect(self.browse_clicked)
+        self.addWindow.screenshot.clicked.connect(self.screenshot_clicked)
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
         self.addWindow.hideEvent = lambda ev: self.timer.start(2)
@@ -203,6 +195,17 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.addWindow.platStopBtn.text() == "Play"
         ):
             self.timer.stop()
+
+    def browse_clicked(self) -> None:
+        self.addWindow.browseGroup.setEnabled(True)
+        self.addWindow.screenshotGroup.setEnabled(False)
+        self.timer.stop()
+
+    def screenshot_clicked(self) -> None:
+        self.addWindow.screenshotGroup.setEnabled(True)
+        self.addWindow.browseGroup.setEnabled(False)
+        if self.addWindow.platStopBtn.text() == "Stop":
+            self.timer.start(2)
 
     def videoLabel_doubleClicked(self, ev: QMouseEvent) -> None:
         if self.maxVideo.isHidden():
