@@ -76,6 +76,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.addBtn.clicked.connect(self.addBtn_clicked)
         self.addWindow.browse.clicked.connect(self.browse_clicked)
         self.addWindow.screenshot.clicked.connect(self.screenshot_clicked)
+        self.addWindow.platStopBtn.clicked.connect(self.platStopBtn_clicked)
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
         self.addWindow.hideEvent = lambda ev: self.timer.start(2)
@@ -190,22 +191,32 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.videoLabel.setPixmap(cvMatToQPixmap(frame))
 
     def addBtn_clicked(self) -> None:
-        self.addWindow.showNormal()
         if (not self.addWindow.screenshot.isChecked()) or (
             self.addWindow.platStopBtn.text() == "Play"
         ):
             self.timer.stop()
+        self.addWindow.showNormal()
 
     def browse_clicked(self) -> None:
+        self.timer.stop()
         self.addWindow.browseGroup.setEnabled(True)
         self.addWindow.screenshotGroup.setEnabled(False)
-        self.timer.stop()
 
     def screenshot_clicked(self) -> None:
-        self.addWindow.screenshotGroup.setEnabled(True)
-        self.addWindow.browseGroup.setEnabled(False)
         if self.addWindow.platStopBtn.text() == "Stop":
             self.timer.start(2)
+        self.addWindow.screenshotGroup.setEnabled(True)
+        self.addWindow.browseGroup.setEnabled(False)
+
+    def platStopBtn_clicked(self) -> None:
+        if self.addWindow.platStopBtn.text() == "Stop":
+            self.timer.stop()
+            self.addWindow.platStopBtn.setText("Play")
+            self.addWindow.proceedBtn.setEnabled(True)
+        else:
+            self.timer.start(2)
+            self.addWindow.platStopBtn.setText("Stop")
+            self.addWindow.proceedBtn.setEnabled(False)
 
     def videoLabel_doubleClicked(self, ev: QMouseEvent) -> None:
         if self.maxVideo.isHidden():
