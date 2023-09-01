@@ -3,8 +3,8 @@ pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
-from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit
-from PyQt6.QtGui import QImage, QPixmap, QMouseEvent
+from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit, QFileDialog
+from PyQt6.QtGui import QImage, QPixmap, QMouseEvent, QHideEvent
 from PyQt6.QtCore import QTimer, Qt
 from .ui_mainwindow import Ui_MainWindow
 from .ui_addwindow import Ui_Widget
@@ -88,11 +88,17 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
-        self.addWindow.hideEvent = lambda ev: self.timer.start(2)
+        self.addWindow.hideEvent = self.addWindow_hideEvent
 
         self.createConnection()
         self.loadData()
         self.timer.start(2)
+
+    def addWindow_hideEvent(self, ev: QHideEvent) -> None:
+        self.timer.start(2)
+        for face in self.uknown_faces:
+            face.close()
+        self.addWindow.imageLabel.clear()
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
         hi, wi = img.shape[:2]
@@ -129,6 +135,49 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.known_face_names.append(name)
             self.known_face_encodings.append(np.frombuffer(encoding))
 
+    def _detectFaces(self, img: cv.Mat, scale: float = 0.5) -> tuple[list, list, list]:
+        small_frame = cv.resize(
+            img, (0, 0), fx=scale, fy=scale, interpolation=cv.INTER_AREA
+        )
+        small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
+        face_locations = fr.face_locations(small_frame)
+        face_encodings = fr.face_encodings(small_frame, face_locations)
+
+        if self.known_face_names:
+            face_names = []
+
+            for face_encoding in face_encodings:
+                name = "Unknown"
+
+                face_distances = fr.face_distance(
+                    self.known_face_encodings, face_encoding
+                )
+                best_index = np.argmin(face_distances)
+
+                if face_distances[best_index] < 0.4:
+                    name = self.known_face_names[best_index]
+                face_names.append(name)
+        else:
+            face_names = ["Unknown" for _ in range(len(face_locations))]
+
+        return (face_locations, face_encodings, face_names)
+
+    def _visualize(
+        self, img: cv.Mat, face_locations: list, face_names: list, scale: float = 2.0
+    ) -> cv.Mat:
+        for (top, right, bottom, left), name in zip(face_locations, face_names):
+            top, right = int(top * scale), int(right * scale)
+            bottom, left = int(bottom * scale), int(left * scale)
+
+            cv.rectangle(img, (left, top), (right, bottom), (0, 0, 255), 2)
+            cv.rectangle(
+                img, (left - 1, bottom - 15), (right, bottom + 5), (0, 0, 255), -1
+            )
+
+            font = cv.FONT_HERSHEY_COMPLEX_SMALL
+            cv.putText(img, name, (left - 2, bottom), font, 1, (255, 255, 255), 1)
+        return img
+
     def readCamera(self) -> None:
         ret, self.frame = self.cam.read()
         if not ret:
@@ -149,45 +198,10 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
         self.frame = self._resize(self.frame, screenSize)
 
-        small_frame = cv.resize(
-            self.frame, (0, 0), fx=0.5, fy=0.5, interpolation=cv.INTER_AREA
+        self.face_locations, self.face_encodings, self.face_names = self._detectFaces(
+            self.frame
         )
-        small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
-        self.face_locations = fr.face_locations(small_frame)
-        self.face_encodings = fr.face_encodings(small_frame, self.face_locations)
-
-        if self.known_face_names:
-            self.face_names = []
-
-            for face_encoding in self.face_encodings:
-                name = "Unknown"
-
-                face_distances = fr.face_distance(
-                    self.known_face_encodings, face_encoding
-                )
-                best_index = np.argmin(face_distances)
-
-                if face_distances[best_index] < 0.4:
-                    name = self.known_face_names[best_index]
-                self.face_names.append(name)
-        else:
-            self.face_names = ["Unknown" for _ in range(len(self.face_locations))]
-
-        for (top, right, bottom, left), name in zip(
-            self.face_locations, self.face_names
-        ):
-            top, right = top * 2, right * 2
-            bottom, left = bottom * 2, left * 2
-
-            cv.rectangle(self.frame, (left, top), (right, bottom), (0, 0, 255), 2)
-            cv.rectangle(
-                self.frame, (left, bottom - 20), (right, bottom), (0, 0, 255), cv.FILLED
-            )
-
-            font = cv.FONT_HERSHEY_COMPLEX_SMALL
-            cv.putText(
-                self.frame, name, (left + 5, bottom - 5), font, 1, (255, 255, 255), 1
-            )
+        self._visualize(self.frame, self.face_locations, self.face_names)
 
         if not self.maxVideo.isHidden():
             self.frame = self._resize(
@@ -207,12 +221,18 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.timer.stop()
         self.addWindow.browseGroup.setEnabled(True)
         self.addWindow.screenshotGroup.setEnabled(False)
+        for face in self.uknown_faces:
+            face.close()
+        self.addWindow.imageLabel.clear()
 
     def screenshotChoice_clicked(self) -> None:
         if self.addWindow.platStopBtn.text() == "Stop":
             self.timer.start(2)
         self.addWindow.screenshotGroup.setEnabled(True)
         self.addWindow.browseGroup.setEnabled(False)
+        for face in self.uknown_faces:
+            face.close()
+        self.addWindow.imageLabel.clear()
 
     def platStopBtn_clicked(self) -> None:
         if self.addWindow.platStopBtn.text() == "Stop":
@@ -223,31 +243,73 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.timer.start(2)
             self.addWindow.platStopBtn.setText("Stop")
             self.addWindow.proceedBtn.setEnabled(False)
+        for face in self.uknown_faces:
+            face.close()
+        self.addWindow.imageLabel.clear()
 
-    def proceedBtn_clicked(self) -> None:
+    def _proceed(self, scale: float = 2.0) -> None:
         self.uknown_faces.clear()
+        deltaX = self.addWindow.imageLabel.width() - self.frame.shape[1]
+        deltaY = self.addWindow.imageLabel.height() - self.frame.shape[0]
+
         for (top, right, bottom, left), name, encoding in zip(
             self.face_locations, self.face_names, self.face_encodings
         ):
             if name != "Unknown":
                 continue
-            top, right = top * 2, right * 2
-            bottom, left = bottom * 2, left * 2
+            top, right = int(top * scale), int(right * scale)
+            bottom, left = int(bottom * scale), int(left * scale)
 
             face = QLineEdit(name, self.addWindow.imageLabel)
             face.encoding = encoding
             face.setStyleSheet("background: red; color: white;")
-            face.move(left, bottom + 12)
+            face.move(left + (deltaX // 2) - 2, bottom + (deltaY // 2) - 15)
+            face.setFixedWidth(right - left + 5)
             face.show()
             self.uknown_faces.append(face)
 
         self.addWindow.okBtn.setEnabled(True)
 
+    def proceedBtn_clicked(self) -> None:
+        self._proceed()
+
     def selectBtn_clicked(self) -> None:
-        pass
+        formats = [
+            "*.jpeg",
+            "*.jpg",
+            "*.jpe",
+            "*.jp2",
+            "*.png",
+            "*.bmp",
+            "*.dib",
+            "*.webp",
+        ]
+        formats = f"Image Files ({' '.join(formats)})"
+        fileName, _ = QFileDialog.getOpenFileName(
+            self, "Open Image File", filter=formats
+        )
+
+        for face in self.uknown_faces:
+            face.close()
+        self.addWindow.imageLabel.clear()
+
+        if fileName:
+            self.frame = self._resize(
+                cv.imread(fileName),
+                (self.addWindow.imageLabel.width(), self.addWindow.imageLabel.height()),
+            )
+            (
+                self.face_locations,
+                self.face_encodings,
+                self.face_names,
+            ) = self._detectFaces(self.frame, 1)
+
+            self._visualize(self.frame, self.face_locations, self.face_names, 1)
+            self.addWindow.browseProceedBtn.setEnabled(True)
+            self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(self.frame))
 
     def browseProceedBtn_clicked(self) -> None:
-        pass
+        self._proceed(1)
 
     def okBtn_clicked(self) -> None:
         sql = "INSERT INTO known_faces (name, encoding) VALUES (%s, %s)"
@@ -260,8 +322,10 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
         self.cr.executemany(sql, val)
         self.db.commit()
+
         self.addWindow.okBtn.setEnabled(False)
         self.addWindow.proceedBtn.setEnabled(False)
+        self.addWindow.browseProceedBtn.setEnabled(False)
 
         for face in self.uknown_faces:
             face.close()
