@@ -314,7 +314,11 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
     def okBtn_clicked(self) -> None:
         sql = "INSERT INTO known_faces (name, encoding) VALUES (%s, %s)"
-        faces = [(face.text(), face.encoding) for face in self.uknown_faces]
+        faces = [
+            (face.text(), face.encoding)
+            for face in self.uknown_faces
+            if (face.text() != "Unknown")
+        ]
         val = [(name, encoding.tobytes()) for (name, encoding) in faces]
 
         for name, encoding in faces:
