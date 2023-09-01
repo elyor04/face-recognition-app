@@ -1,10 +1,13 @@
 """
 pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
+pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
+pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent
 from PyQt6.QtCore import QTimer, Qt
 from .ui_mainwindow import Ui_MainWindow
+from .ui_addwindow import Ui_Widget
 
 from mysql.connector import connect
 import face_recognition as fr
@@ -23,6 +26,31 @@ def cvMatToQPixmap(inMat: cv.Mat) -> QPixmap:
     return QPixmap.fromImage(cvMatToQImage(inMat))
 
 
+class AddWindow(QWidget, Ui_Widget):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setupUi(self)
+        self._init()
+
+    def _init(self) -> None:
+        self.browse.setChecked(True)
+        self.screenshotGroup.setEnabled(False)
+        self.cancelBtn.clicked.connect(self.hide)
+        self.browse.clicked.connect(self.browse_clicked)
+        self.screenshot.clicked.connect(self.screenshot_clicked)
+        self.imageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.okBtn.setEnabled(False)
+        self.proceedBtn.setEnabled(False)
+
+    def browse_clicked(self) -> None:
+        self.browseGroup.setEnabled(True)
+        self.screenshotGroup.setEnabled(False)
+
+    def screenshot_clicked(self) -> None:
+        self.screenshotGroup.setEnabled(True)
+        self.browseGroup.setEnabled(False)
+
+
 class AppMainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent: QWidget = None) -> None:
         super().__init__(parent)
@@ -30,10 +58,15 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.cam = cv.VideoCapture(0)
         self.timer = QTimer(self)
         self.maxVideo = QLabel()
+        self.addWindow = AddWindow()
 
         self.known_face_encodings = []
         self.known_face_names = []
-        self.lastFrame = None
+
+        self.face_locations = []
+        self.face_encodings = []
+        self.face_names = []
+        self.frame = None
 
         self.db = None
         self.cr = None
@@ -50,8 +83,10 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.maxVideo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.maxVideo.resize(600, 500)
         self.timer.timeout.connect(self.readCamera)
+        self.addBtn.clicked.connect(self.addBtn_clicked)
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
+        self.addWindow.hideEvent = lambda ev: self.timer.start(2)
         self.createConnection()
         self.loadData()
         self.timer.start(2)
@@ -102,19 +137,21 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         ret, frame = self.cam.read()
         if not ret:
             return
-        self.lastFrame = frame.copy()
+        self.frame = frame.copy()
 
         small_frame = cv.resize(
             frame, (0, 0), fx=0.3, fy=0.3, interpolation=cv.INTER_AREA
         )
         rgb_small_frame = cv.cvtColor(small_frame, cv.COLOR_BGR2RGB)
-        face_locations = fr.face_locations(rgb_small_frame)
+        self.face_locations = fr.face_locations(rgb_small_frame)
 
         if self.known_face_names:
-            face_encodings = fr.face_encodings(rgb_small_frame, face_locations)
-            face_names = []
+            self.face_encodings = fr.face_encodings(
+                rgb_small_frame, self.face_locations
+            )
+            self.face_names = []
 
-            for face_encoding in face_encodings:
+            for face_encoding in self.face_encodings:
                 name = "Unknown"
 
                 face_distances = fr.face_distance(
@@ -124,11 +161,13 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
                 if face_distances[best_index] < 0.4:
                     name = self.known_face_names[best_index]
-                face_names.append(name)
+                self.face_names.append(name)
         else:
-            face_names = ["Unknown" for _ in range(len(face_locations))]
+            self.face_names = ["Unknown" for _ in range(len(self.face_locations))]
 
-        for (top, right, bottom, left), name in zip(face_locations, face_names):
+        for (top, right, bottom, left), name in zip(
+            self.face_locations, self.face_names
+        ):
             top, right = int(top * 3.3), int(right * 3.3)
             bottom, left = int(bottom * 3.3), int(left * 3.3)
 
@@ -142,14 +181,28 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
                 frame, name, (left + 8, bottom - 8), font, 1.5, (255, 255, 255), 2
             )
 
-        if self.maxVideo.isHidden():
+        if not self.addWindow.isHidden():
             frame = self._resize(
-                frame, (self.videoLabel.width(), self.videoLabel.height())
+                frame,
+                (self.addWindow.imageLabel.width(), self.addWindow.imageLabel.height()),
             )
-            self.videoLabel.setPixmap(cvMatToQPixmap(frame))
-        else:
+            self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(frame))
+            return
+
+        if not self.maxVideo.isHidden():
             frame = self._resize(frame, (self.maxVideo.width(), self.maxVideo.height()))
             self.maxVideo.setPixmap(cvMatToQPixmap(frame))
+            return
+
+        frame = self._resize(frame, (self.videoLabel.width(), self.videoLabel.height()))
+        self.videoLabel.setPixmap(cvMatToQPixmap(frame))
+
+    def addBtn_clicked(self) -> None:
+        self.addWindow.showNormal()
+        if (not self.addWindow.screenshot.isChecked()) or (
+            self.addWindow.platStopBtn.text() == "Play"
+        ):
+            self.timer.stop()
 
     def videoLabel_doubleClicked(self, ev: QMouseEvent) -> None:
         if self.maxVideo.isHidden():
