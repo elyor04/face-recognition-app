@@ -57,7 +57,6 @@ class DeleteWindow(QWidget, Ui_DeleteWindow):
         self._init()
 
     def _init(self) -> None:
-        self.okBtn.setEnabled(False)
         self.cancelBtn.clicked.connect(self.hide)
 
 
@@ -108,6 +107,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.addWindow.openBtn.clicked.connect(self.openBtn_clicked)
         self.addWindow.browseProceedBtn.clicked.connect(self.browseProceedBtn_clicked)
 
+        self.delWindow.okBtn.clicked.connect(self.delWindow_okBtn_clicked)
         self.delWindow.deleteTable.setColumnCount(3)
         self.delWindow.deleteTable.setRowCount(0)
         self.delWindow.deleteTable.verticalHeader().setVisible(False)
@@ -131,7 +131,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
     def delWindow_hideEvent(self, ev: QHideEvent) -> None:
         self.timer.start(2)
-        self.delWindow.okBtn.setEnabled(False)
         self.setEnabled(True)
         self.delWindow.deleteTable.clear()
         self.delWindow.deleteTable.setRowCount(0)
@@ -166,6 +165,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         )
 
     def loadData(self) -> None:
+        self.known_face_names.clear()
+        self.known_face_encodings.clear()
         self.cr.execute("SELECT name, encoding FROM known_faces")
         for name, encoding in self.cr.fetchall():
             self.known_face_names.append(name)
@@ -385,19 +386,15 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
     def okBtn_clicked(self) -> None:
         sql = "INSERT INTO known_faces (name, encoding) VALUES (%s, %s)"
-        faces = [
-            (face.text(), face.encoding)
+        val = [
+            (face.text(), face.encoding.tobytes())
             for face in self.uknown_faces
             if (face.text() != "Unknown")
         ]
-        val = [(name, encoding.tobytes()) for (name, encoding) in faces]
-
-        for name, encoding in faces:
-            self.known_face_names.append(name)
-            self.known_face_encodings.append(encoding)
 
         self.cr.executemany(sql, val)
         self.db.commit()
+        self.loadData()
 
         self.addWindow.okBtn.setEnabled(False)
         self.addWindow.proceedBtn.setEnabled(False)
@@ -406,6 +403,24 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         for face in self.uknown_faces:
             face.close()
         self.addWindow.imageLabel.clear()
+
+    def delWindow_okBtn_clicked(self) -> None:
+        val, rows = [], []
+
+        for row in range(self.delWindow.deleteTable.rowCount()):
+            item0 = self.delWindow.deleteTable.item(row, 0)
+            item2 = self.delWindow.deleteTable.item(row, 2)
+            if item2.checkState() == Qt.CheckState.Checked:
+                val.append((int(item0.text()),))
+                rows.insert(0, row)
+
+        sql = "DELETE FROM known_faces WHERE id = %s"
+        self.cr.executemany(sql, val)
+        self.db.commit()
+
+        self.loadData()
+        for row in rows:
+            self.delWindow.deleteTable.removeRow(row)
 
     def videoLabel_doubleClicked(self, ev: QMouseEvent) -> None:
         if self.maxVideo.isHidden():
