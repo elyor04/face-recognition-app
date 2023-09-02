@@ -217,6 +217,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         ):
             self.timer.stop()
         self.addWindow.showNormal()
+        self.videoLabel.clear()
 
     def browseChoice_clicked(self) -> None:
         self.timer.stop()
@@ -339,5 +340,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
     def videoLabel_doubleClicked(self, ev: QMouseEvent) -> None:
         if self.maxVideo.isHidden():
             self.maxVideo.showMaximized()
+            self.videoLabel.clear()
         else:
             self.maxVideo.hide()
