@@ -125,9 +125,11 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.timer.start(2)
         for face in self.uknown_faces:
             face.close()
+        self.setEnabled(True)
         self.addWindow.imageLabel.clear()
         self.addWindow.okBtn.setEnabled(False)
-        self.setEnabled(True)
+        self.addWindow.proceedBtn.setEnabled(False)
+        self.addWindow.browseProceedBtn.setEnabled(False)
 
     def delWindow_hideEvent(self, ev: QHideEvent) -> None:
         self.timer.start(2)
