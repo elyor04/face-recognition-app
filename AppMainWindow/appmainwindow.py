@@ -3,7 +3,14 @@ pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
-from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit, QFileDialog
+from PyQt6.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QFileDialog,
+    QTableWidgetItem,
+)
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent, QHideEvent
 from PyQt6.QtCore import QTimer, Qt
 from .ui_mainwindow import Ui_MainWindow
@@ -101,6 +108,10 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.addWindow.openBtn.clicked.connect(self.openBtn_clicked)
         self.addWindow.browseProceedBtn.clicked.connect(self.browseProceedBtn_clicked)
 
+        self.delWindow.deleteTable.setColumnCount(3)
+        self.delWindow.deleteTable.setRowCount(0)
+        self.delWindow.deleteTable.verticalHeader().setVisible(False)
+
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
         self.addWindow.hideEvent = self.addWindow_hideEvent
@@ -122,6 +133,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.timer.start(2)
         self.delWindow.okBtn.setEnabled(False)
         self.setEnabled(True)
+        self.delWindow.deleteTable.clear()
+        self.delWindow.deleteTable.setRowCount(0)
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
         hi, wi = img.shape[:2]
@@ -253,6 +266,23 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.delWindow.showNormal()
         self.videoLabel.clear()
         self.setEnabled(False)
+
+        self.cr.execute("SELECT id, name FROM known_faces")
+        data = self.cr.fetchall()
+        headers = ["Id", "Name", "Delete"]
+        self.delWindow.deleteTable.setHorizontalHeaderLabels(headers)
+        self.delWindow.deleteTable.setRowCount(len(data))
+
+        for row, (id, name) in enumerate(data):
+            item0 = QTableWidgetItem(str(id))
+            self.delWindow.deleteTable.setItem(row, 0, item0)
+            item1 = QTableWidgetItem(name)
+            self.delWindow.deleteTable.setItem(row, 1, item1)
+
+            item2 = QTableWidgetItem()
+            item2.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+            item2.setCheckState(Qt.CheckState.Unchecked)
+            self.delWindow.deleteTable.setItem(row, 2, item2)
 
     def browseChoice_clicked(self) -> None:
         self.timer.stop()
