@@ -3,8 +3,6 @@ pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
-import typing
-from PyQt6 import QtCore
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit, QFileDialog
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent, QHideEvent
 from PyQt6.QtCore import QTimer, Qt
@@ -92,6 +90,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.maxVideo.resize(600, 500)
         self.timer.timeout.connect(self.readCamera)
         self.addBtn.clicked.connect(self.addBtn_clicked)
+        self.deleteBtn.clicked.connect(self.deleteBtn_clicked)
         self.maxVideo.setStyleSheet("background: rgb(150, 150, 150);")
 
         self.addWindow.browseChoice.clicked.connect(self.browseChoice_clicked)
@@ -105,6 +104,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
         self.maxVideo.mouseDoubleClickEvent = lambda ev: self.maxVideo.hide()
         self.addWindow.hideEvent = self.addWindow_hideEvent
+        self.delWindow.hideEvent = self.delWindow_hideEvent
 
         self.createConnection()
         self.loadData()
@@ -116,6 +116,12 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             face.close()
         self.addWindow.imageLabel.clear()
         self.addWindow.okBtn.setEnabled(False)
+        self.setEnabled(True)
+
+    def delWindow_hideEvent(self, ev: QHideEvent) -> None:
+        self.timer.start(2)
+        self.delWindow.okBtn.setEnabled(False)
+        self.setEnabled(True)
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
         hi, wi = img.shape[:2]
@@ -240,6 +246,13 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.timer.stop()
         self.addWindow.showNormal()
         self.videoLabel.clear()
+        self.setEnabled(False)
+
+    def deleteBtn_clicked(self) -> None:
+        self.timer.stop()
+        self.delWindow.showNormal()
+        self.videoLabel.clear()
+        self.setEnabled(False)
 
     def browseChoice_clicked(self) -> None:
         self.timer.stop()
