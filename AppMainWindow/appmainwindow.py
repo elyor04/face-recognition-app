@@ -202,11 +202,11 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(frame))
 
         elif not self.maxVideo.isHidden():
-            scale = (
-                (self.videoLabel.width() * self.videoLabel.height())
-                / (self.maxVideo.width() * self.maxVideo.height())
-            ) * 0.7
             frame = self._resize(frame, (self.maxVideo.width(), self.maxVideo.height()))
+            scale = (self.videoLabel.width() * self.videoLabel.height()) / (
+                self.maxVideo.width() * self.maxVideo.height()
+            )
+            scale = min(scale * 0.7, 1)
             self._detectAndVisualizeFaces(frame, scale)
             self.maxVideo.setPixmap(cvMatToQPixmap(frame))
 
