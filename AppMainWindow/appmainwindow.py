@@ -135,7 +135,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.known_face_names.append(name)
             self.known_face_encodings.append(np.frombuffer(encoding))
 
-    def _detectFaces(self, img: cv.Mat, scale: float = 0.8) -> tuple[list, list, list]:
+    def _detectFaces(self, img: cv.Mat, scale: float = 0.7) -> tuple[list, list, list]:
         small_frame = cv.resize(
             img, (0, 0), fx=scale, fy=scale, interpolation=cv.INTER_AREA
         )
@@ -163,7 +163,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         return (face_locations, face_encodings, face_names)
 
     def _visualize(
-        self, img: cv.Mat, face_locations: list, face_names: list, scale: float = 0.8
+        self, img: cv.Mat, face_locations: list, face_names: list, scale: float = 0.7
     ) -> cv.Mat:
         scale = 1 / scale
         for (top, right, bottom, left), name in zip(face_locations, face_names):
@@ -179,43 +179,49 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             cv.putText(img, name, (left - 2, bottom), font, 1, (255, 255, 255), 1)
         return img
 
+    def _detectAndVisualizeFaces(
+        self, img: cv.Mat, scale: float = 0.7
+    ) -> tuple[list, list, list]:
+        face_locations, face_encodings, face_names = self._detectFaces(img, scale)
+        self._visualize(img, face_locations, face_names, scale)
+        return (face_locations, face_encodings, face_names)
+
     def readCamera(self) -> None:
-        ret, self.frame = self.cam.read()
+        ret, frame = self.cam.read()
         if not ret:
             return
 
         if not self.addWindow.isHidden():
-            screenSize = (
-                self.addWindow.imageLabel.width(),
-                self.addWindow.imageLabel.height(),
+            frame = self._resize(
+                frame,
+                (self.addWindow.imageLabel.width(), self.addWindow.imageLabel.height()),
             )
-            videoLabel = self.addWindow.imageLabel
+            self.frame = frame.copy()
+            self._detectAndVisualizeFaces(frame)
+            self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(frame))
+
+        elif not self.maxVideo.isHidden():
+            scale = (
+                (self.videoLabel.width() * self.videoLabel.height())
+                / (self.maxVideo.width() * self.maxVideo.height())
+            ) * 0.7
+            frame = self._resize(frame, (self.maxVideo.width(), self.maxVideo.height()))
+            self._detectAndVisualizeFaces(frame, scale)
+            self.maxVideo.setPixmap(cvMatToQPixmap(frame))
+
         else:
-            screenSize = (
-                self.videoLabel.width(),
-                self.videoLabel.height(),
+            frame = self._resize(
+                frame, (self.videoLabel.width(), self.videoLabel.height())
             )
-            videoLabel = self.videoLabel
-
-        self.frame = self._resize(self.frame, screenSize)
-
-        self.face_locations, self.face_encodings, self.face_names = self._detectFaces(
-            self.frame
-        )
-        self._visualize(self.frame, self.face_locations, self.face_names)
-
-        if not self.maxVideo.isHidden():
-            self.frame = self._resize(
-                self.frame, (self.maxVideo.width(), self.maxVideo.height())
-            )
-            videoLabel = self.maxVideo
-        videoLabel.setPixmap(cvMatToQPixmap(self.frame))
+            self._detectAndVisualizeFaces(frame)
+            self.videoLabel.setPixmap(cvMatToQPixmap(frame))
 
     def addBtn_clicked(self) -> None:
         if (not self.addWindow.screenshotChoice.isChecked()) or (
             self.addWindow.platStopBtn.text() == "Play"
         ):
             self.timer.stop()
+        self.addWindow.okBtn.setEnabled(False)
         self.addWindow.showNormal()
         self.videoLabel.clear()
 
@@ -241,6 +247,12 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.timer.stop()
             self.addWindow.platStopBtn.setText("Play")
             self.addWindow.proceedBtn.setEnabled(True)
+            (
+                self.face_locations,
+                self.face_encodings,
+                self.face_names,
+            ) = self._detectAndVisualizeFaces(self.frame, 1)
+            self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(self.frame))
         else:
             self.timer.start(2)
             self.addWindow.platStopBtn.setText("Stop")
@@ -249,7 +261,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
                 face.close()
             self.addWindow.imageLabel.clear()
 
-    def _proceed(self, scale: float = 0.8) -> None:
+    def _proceed(self, scale: float = 1.0) -> None:
         scale = 1 / scale
         self.uknown_faces.clear()
         deltaX = self.addWindow.imageLabel.width() - self.frame.shape[1]
@@ -304,14 +316,13 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
                 self.face_locations,
                 self.face_encodings,
                 self.face_names,
-            ) = self._detectFaces(self.frame, 1)
+            ) = self._detectAndVisualizeFaces(self.frame, 1)
 
-            self._visualize(self.frame, self.face_locations, self.face_names, 1)
             self.addWindow.browseProceedBtn.setEnabled(True)
             self.addWindow.imageLabel.setPixmap(cvMatToQPixmap(self.frame))
 
     def browseProceedBtn_clicked(self) -> None:
-        self._proceed(1)
+        self._proceed()
 
     def okBtn_clicked(self) -> None:
         sql = "INSERT INTO known_faces (name, encoding) VALUES (%s, %s)"
