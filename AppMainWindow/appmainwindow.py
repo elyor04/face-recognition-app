@@ -257,7 +257,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         for (top, right, bottom, left), name, encoding in zip(
             self.face_locations, self.face_names, self.face_encodings
         ):
-            if name != "Unknown":
+            if self.known_face_names.count(name) >= 10:
                 continue
             top, right = int(top * scale), int(right * scale)
             bottom, left = int(bottom * scale), int(left * scale)
