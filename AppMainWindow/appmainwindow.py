@@ -3,11 +3,14 @@ pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
+import typing
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import QMainWindow, QWidget, QLabel, QLineEdit, QFileDialog
 from PyQt6.QtGui import QImage, QPixmap, QMouseEvent, QHideEvent
 from PyQt6.QtCore import QTimer, Qt
 from .ui_mainwindow import Ui_MainWindow
-from .ui_addwindow import Ui_Widget
+from .ui_addwindow import Ui_Widget as Ui_AddWindow
+from .ui_deletewindow import Ui_Widget as Ui_DeleteWindow
 
 from mysql.connector import connect
 import face_recognition as fr
@@ -26,7 +29,7 @@ def cvMatToQPixmap(inMat: cv.Mat) -> QPixmap:
     return QPixmap.fromImage(cvMatToQImage(inMat))
 
 
-class AddWindow(QWidget, Ui_Widget):
+class AddWindow(QWidget, Ui_AddWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setupUi(self)
@@ -42,6 +45,17 @@ class AddWindow(QWidget, Ui_Widget):
         self.imageLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
+class DeleteWindow(QWidget, Ui_DeleteWindow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setupUi(self)
+        self._init()
+
+    def _init(self) -> None:
+        self.okBtn.setEnabled(False)
+        self.cancelBtn.clicked.connect(self.hide)
+
+
 class AppMainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self, parent: QWidget = None) -> None:
         super().__init__(parent)
@@ -50,6 +64,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.timer = QTimer(self)
         self.maxVideo = QLabel()
         self.addWindow = AddWindow()
+        self.delWindow = DeleteWindow()
 
         self.known_face_encodings = []
         self.known_face_names = []
@@ -77,6 +92,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.maxVideo.resize(600, 500)
         self.timer.timeout.connect(self.readCamera)
         self.addBtn.clicked.connect(self.addBtn_clicked)
+        self.maxVideo.setStyleSheet("background: rgb(150, 150, 150);")
 
         self.addWindow.browseChoice.clicked.connect(self.browseChoice_clicked)
         self.addWindow.screenshotChoice.clicked.connect(self.screenshotChoice_clicked)
