@@ -83,7 +83,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.addWindow.platStopBtn.clicked.connect(self.platStopBtn_clicked)
         self.addWindow.proceedBtn.clicked.connect(self.proceedBtn_clicked)
         self.addWindow.okBtn.clicked.connect(self.okBtn_clicked)
-        self.addWindow.selectBtn.clicked.connect(self.selectBtn_clicked)
+        self.addWindow.openBtn.clicked.connect(self.openBtn_clicked)
         self.addWindow.browseProceedBtn.clicked.connect(self.browseProceedBtn_clicked)
 
         self.videoLabel.mouseDoubleClickEvent = self.videoLabel_doubleClicked
@@ -99,6 +99,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         for face in self.uknown_faces:
             face.close()
         self.addWindow.imageLabel.clear()
+        self.addWindow.okBtn.setEnabled(False)
 
     def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
         hi, wi = img.shape[:2]
@@ -221,7 +222,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.addWindow.platStopBtn.text() == "Play"
         ):
             self.timer.stop()
-        self.addWindow.okBtn.setEnabled(False)
         self.addWindow.showNormal()
         self.videoLabel.clear()
 
@@ -264,8 +264,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
     def _proceed(self, scale: float = 1.0) -> None:
         scale = 1 / scale
         self.uknown_faces.clear()
-        deltaX = self.addWindow.imageLabel.width() - self.frame.shape[1]
-        deltaY = self.addWindow.imageLabel.height() - self.frame.shape[0]
+        deltaX = (self.addWindow.imageLabel.width() - self.frame.shape[1]) // 2
+        deltaY = (self.addWindow.imageLabel.height() - self.frame.shape[0]) // 2
 
         for (top, right, bottom, left), name, encoding in zip(
             self.face_locations, self.face_names, self.face_encodings
@@ -278,7 +278,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             face = QLineEdit(name, self.addWindow.imageLabel)
             face.encoding = encoding
             face.setStyleSheet("background: red; color: white;")
-            face.move(left + (deltaX // 2) - 2, bottom + (deltaY // 2) - 15)
+            face.move(left + deltaX - 2, bottom + deltaY - 15)
             face.setFixedWidth(right - left + 5)
             face.show()
             self.uknown_faces.append(face)
@@ -288,7 +288,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
     def proceedBtn_clicked(self) -> None:
         self._proceed()
 
-    def selectBtn_clicked(self) -> None:
+    def openBtn_clicked(self) -> None:
         formats = [
             "*.jpeg",
             "*.jpg",
