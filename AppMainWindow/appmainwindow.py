@@ -244,9 +244,9 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.timer.start(2)
             self.addWindow.platStopBtn.setText("Stop")
             self.addWindow.proceedBtn.setEnabled(False)
-        for face in self.uknown_faces:
-            face.close()
-        self.addWindow.imageLabel.clear()
+            for face in self.uknown_faces:
+                face.close()
+            self.addWindow.imageLabel.clear()
 
     def _proceed(self, scale: float = 0.8) -> None:
         scale = 1 / scale
