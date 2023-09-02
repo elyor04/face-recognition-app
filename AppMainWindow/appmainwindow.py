@@ -137,20 +137,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.delWindow.deleteTable.clear()
         self.delWindow.deleteTable.setRowCount(0)
 
-    def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
-        hi, wi = img.shape[:2]
-        ws, hs = screenSize
-        ri, rs = wi / hi, ws / hs
-
-        wn = int(wi * hs / hi) if (rs > ri) else ws
-        hn = hs if (rs > ri) else int(hi * ws / wi)
-        wn, hn = max(wn, 1), max(hn, 1)
-
-        if (wn * hn) < (wi * hi):
-            return cv.resize(img, (wn, hn), interpolation=cv.INTER_AREA)
-        else:
-            return cv.resize(img, (wn, hn), interpolation=cv.INTER_LINEAR)
-
     def createConnection(self) -> None:
         self.db = connect(
             host="localhost",
@@ -173,6 +159,20 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         for name, encoding in self.cr.fetchall():
             self.known_face_names.append(name)
             self.known_face_encodings.append(np.frombuffer(encoding))
+
+    def _resize(self, img: cv.Mat, screenSize: tuple[int, int]) -> cv.Mat:
+        hi, wi = img.shape[:2]
+        ws, hs = screenSize
+        ri, rs = wi / hi, ws / hs
+
+        wn = int(wi * hs / hi) if (rs > ri) else ws
+        hn = hs if (rs > ri) else int(hi * ws / wi)
+        wn, hn = max(wn, 1), max(hn, 1)
+
+        if (wn * hn) < (wi * hi):
+            return cv.resize(img, (wn, hn), interpolation=cv.INTER_AREA)
+        else:
+            return cv.resize(img, (wn, hn), interpolation=cv.INTER_LINEAR)
 
     def _detectFaces(self, img: cv.Mat, scale: float = 0.7) -> tuple[list, list, list]:
         small_frame = cv.resize(
