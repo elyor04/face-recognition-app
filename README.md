@@ -10,5 +10,5 @@
 
 ### Then install the libraries
 ```
-pip install --upgarde cmake face-recognition mysql-connector-python opencv-python PyQt6
+pip install --upgrade cmake face-recognition mysql-connector-python opencv-python PyQt6
 ```
