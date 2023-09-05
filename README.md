@@ -21,10 +21,8 @@ sudo systemctl start mysql.service
 ```
 
 * Configure MySQL Community Server
-```
-sudo mysql
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd1234';
-```
+```sudo mysql```
+```ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd1234';```
 
 ### Finally install the libraries
 ```
