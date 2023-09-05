@@ -13,6 +13,19 @@
 
 ### Install on Linux
 
+* Install MySQL Community Server
+```
+sudo apt update
+sudo apt -y install mysql-server
+sudo systemctl start mysql.service
+```
+
+* Configure MySQL Community Server
+```
+sudo mysql
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd1234';
+```
+
 ### Finally install the libraries
 ```
 pip install cmake && pip install face-recognition mysql-connector-python opencv-python PyQt6
