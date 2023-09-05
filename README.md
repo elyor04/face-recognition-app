@@ -13,14 +13,14 @@
 
 ### Install on Linux
 
-#### Install MySQL Community Server
+* Install MySQL Community Server
 ```
 sudo apt update
 sudo apt -y install mysql-server
 sudo systemctl start mysql.service
 ```
 
-#### Configure MySQL Community Server
+* Configure MySQL Community Server
 ```
 sudo mysql
 ```
