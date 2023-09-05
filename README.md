@@ -26,6 +26,7 @@ sudo mysql
 ```
 ```
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd1234';
+exit
 ```
 
 ### Finally install the libraries
