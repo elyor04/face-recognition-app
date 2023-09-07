@@ -61,10 +61,19 @@ class DeleteWindow(QWidget, Ui_DeleteWindow):
 
 
 class AppMainWindow(QMainWindow, Ui_MainWindow):
-    def __init__(self, parent: QWidget = None) -> None:
-        super().__init__(parent)
+    def __init__(
+        self,
+        filenameOrIndex: str | int = 0,
+        host: str = "localhost",
+        user: str = "root",
+        password: str = "abcd1234",
+    ) -> None:
+        super().__init__()
 
-        self.cam = cv.VideoCapture(0)
+        self.cam = cv.VideoCapture(filenameOrIndex)
+        self.db = connect(host=host, user=user, password=password)
+        self.cr = self.db.cursor()
+
         self.timer = QTimer(self)
         self.maxVideo = QLabel()
         self.addWindow = AddWindow()
@@ -78,9 +87,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.face_encodings = []
         self.face_names = []
         self.frame = None
-
-        self.db = None
-        self.cr = None
 
         self.setupUi(self)
         self._init()
@@ -117,7 +123,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.addWindow.hideEvent = self.addWindow_hideEvent
         self.delWindow.hideEvent = self.delWindow_hideEvent
 
-        self.createConnection()
+        self.prepareDatabase()
         self.loadData()
         self.timer.start(2)
 
@@ -137,17 +143,9 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self.delWindow.deleteTable.clear()
         self.delWindow.deleteTable.setRowCount(0)
 
-    def createConnection(self) -> None:
-        self.db = connect(
-            host="localhost",
-            user="root",
-            password="abcd1234",
-        )
-        self.cr = self.db.cursor()
-
+    def prepareDatabase(self) -> None:
         self.cr.execute("CREATE DATABASE IF NOT EXISTS face_recognition_app")
         self.db.connect(database="face_recognition_app")
-
         self.cr.execute(
             "CREATE TABLE IF NOT EXISTS known_faces (id INT AUTO_INCREMENT PRIMARY KEY, name TEXT, encoding BLOB)"
         )
