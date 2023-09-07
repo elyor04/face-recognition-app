@@ -4,9 +4,7 @@
 
 <div align="center">
 <h2>How does the program look like?</h2>
-<a href="https://ibb.co/XWPcYM6"><img src="https://i.ibb.co/JcTD3g8/Screenshot-2023-09-07-at-20-52-30.png" alt="MainWindow" border="0"></a><br>
-<a href="https://ibb.co/t3NJfXR"><img src="https://i.ibb.co/6NpWhBQ/Screenshot-2023-09-07-at-20-52-47.png" alt="AddWindow" border="0"></a><br>
-<a href="https://ibb.co/yNmgxQw"><img src="https://i.ibb.co/tHwY1J7/Screenshot-2023-09-07-at-20-52-53.png" alt="DeleteWindow" border="0"></a><br>
+<a href="https://ibb.co/XWPcYM6"><img src="https://i.ibb.co/JcTD3g8/Screenshot-2023-09-07-at-20-52-30.png" alt="Screenshot-2023-09-07-at-20-52-30" border="0"></a>
 </div>
 
 
