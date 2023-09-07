@@ -349,16 +349,7 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
         self._proceed()
 
     def openBtn_clicked(self) -> None:
-        formats = [
-            "*.jpeg",
-            "*.jpg",
-            "*.jpe",
-            "*.jp2",
-            "*.png",
-            "*.bmp",
-            "*.dib",
-            "*.webp",
-        ]
+        formats = ["*.jpeg", "*.jpg", "*.jp2", "*.png", "*.bmp", "*.dib", "*.webp"]
         fileName, _ = QFileDialog.getOpenFileName(
             self, "Open Image File", filter=f"Image Files ({' '.join(formats)})"
         )
