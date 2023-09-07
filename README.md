@@ -5,6 +5,7 @@
 <div align="center">
 <h2>How does the program look like?</h2>
 <a href="https://ibb.co/XWPcYM6"><img src="https://i.ibb.co/JcTD3g8/Screenshot-2023-09-07-at-20-52-30.png" alt="Screenshot-2023-09-07-at-20-52-30" border="0"></a>
+<a href="https://ibb.co/t3NJfXR"><img src="https://i.ibb.co/6NpWhBQ/Screenshot-2023-09-07-at-20-52-47.png" alt="Screenshot-2023-09-07-at-20-52-47" border="0"></a>
 </div>
 
 
