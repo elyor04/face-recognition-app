@@ -39,5 +39,5 @@ exit
 
 ### Finally install the libraries
 ```
-pip install cmake && pip install face-recognition mysql-connector-python==8.0.33 opencv-python "PyQt6-sip<13.5" "PyQt6-Qt6<6.5" "PyQt6<6.5"
+pip install cmake && pip install face-recognition "mysql-connector-python<8.1" opencv-python "PyQt6-sip<13.5" "PyQt6-Qt6<6.5" "PyQt6<6.5"
 ```
