@@ -3,6 +3,7 @@ pyuic6 -o AppMainWindow/ui_mainwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_addwindow.py "path/to/file.ui"
 pyuic6 -o AppMainWindow/ui_deletewindow.py "path/to/file.ui"
 """
+
 from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -90,10 +91,6 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
 
         self.setupUi(self)
         self._init()
-
-    def __del__(self) -> None:
-        self.cam.release()
-        self.db.close()
 
     def _init(self) -> None:
         self.videoLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -419,3 +416,8 @@ class AppMainWindow(QMainWindow, Ui_MainWindow):
             self.videoLabel.clear()
         else:
             self.maxVideo.hide()
+
+    def closeEvent(self, event):
+        event.accept()
+        self.cam.release()
+        self.db.close()
